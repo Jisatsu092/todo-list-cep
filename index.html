@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To-Do List Cep</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .flatpickr-input {
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 3h-1V1h-2v2H7V1H5v2H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM19 21H5V10h14z"/></svg>') no-repeat right 10px center;
+            background-size: 16px;
+        }
+        .flatpickr-calendar {
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .flatpickr-day.selected {
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+        .password-wrapper {
+            position: relative;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            user-select: none;
+        }
+        input:required + .required-asterisk {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-blue-100 to-purple-100 min-h-screen flex items-center justify-center p-4 sm:p-6">
+    <!-- Auth Section -->
+    <div id="authSection" class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md transform transition-all duration-300">
+        <!-- Login Form -->
+        <div id="loginForm" class="block">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-800">Masuk ke To-Do List</h2>
+            <div class="password-wrapper">
+                <input id="loginEmail" type="email" placeholder="Email" class="w-full mb-4 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base" required>
+            </div>
+            <div class="password-wrapper">
+                <input id="loginPassword" type="password" placeholder="Password" class="w-full mb-4 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base pr-10" required>
+                <span class="password-toggle" onclick="togglePassword('loginPassword', this)">🙂</span>
+            </div>
+            <div class="flex items-center mb-4">
+                <input id="rememberMe" type="checkbox" class="mr-2">
+                <label for="rememberMe" class="text-sm text-gray-600">Ingat Saya</label>
+            </div>
+            <button onclick="login()" class="bg-blue-600 text-white px-4 py-3 rounded-lg w-full hover:bg-blue-700 transition duration-200 text-sm sm:text-base">Masuk</button>
+            <p class="text-center mt-4 text-sm">Belum punya akun? <a href="#" onclick="toggleForm('register')" class="text-blue-600 hover:underline">Daftar</a></p>
+        </div>
+        <!-- Register Form -->
+        <div id="registerForm" class="hidden">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-800">Daftar ke To-Do List</h2>
+            <div class="password-wrapper">
+                <input id="registerEmail" type="email" placeholder="Email" class="w-full mb-4 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm sm:text-base" required>
+            </div>
+            <div class="password-wrapper">
+                <input id="registerPassword" type="password" placeholder="Password" class="w-full mb-4 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm sm:text-base pr-10" required>
+                <span class="password-toggle" onclick="togglePassword('registerPassword', this)">🙂</span>
+            </div>
+            <div class="password-wrapper">
+                <input id="registerConfirmPassword" type="password" placeholder="Konfirmasi Password" class="w-full mb-4 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 text-sm sm:text-base pr-10" required>
+                <span class="password-toggle" onclick="togglePassword('registerConfirmPassword', this)">🙂</span>
+            </div>
+            <button onclick="register()" class="bg-green-600 text-white px-4 py-3 rounded-lg w-full hover:bg-green-700 transition duration-200 text-sm sm:text-base">Daftar</button>
+            <p class="text-center mt-4 text-sm">Sudah punya akun? <a href="#" onclick="toggleForm('login')" class="text-blue-600 hover:underline">Masuk</a></p>
+        </div>
+    </div>
+
+    <!-- To-Do List Section -->
+    <div id="todoSection" class="bg-white shadow-2xl rounded-2xl w-full max-w-full sm:max-w-2xl p-6 sm:p-8 hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl sm:text-4xl font-bold text-gray-800">📝 To-Do List Cep</h1>
+            <button onclick="logout()" class="text-red-500 hover:text-red-700 font-medium text-sm sm:text-base">Logout</button>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 mb-6">
+            <input id="taskInput" type="text" placeholder="Tambah tugas..." class="flex-grow px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base">
+            <input id="deadlineInput" type="text" placeholder="Pilih tanggal..." class="px-4 py-3 border rounded-lg text-sm sm:text-base">
+            <button onclick="addTask()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 text-sm sm:text-base">Tambah</button>
+        </div>
+
+        <ul id="taskList" class="space-y-3 max-h-[60vh] overflow-y-auto"></ul>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2/dist/email.min.js"></script>
+    <script src="config.js"></script>
+
+    <script>
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Initialize EmailJS
+        emailjs.init(emailJsUserId);
+
+        // Initialize Flatpickr
+        const deadlineInput = document.getElementById("deadlineInput");
+        flatpickr(deadlineInput, {
+            dateFormat: "Y-m-d",
+            defaultDate: new Date(),
+            minDate: "today",
+            enableTime: false,
+            locale: {
+                firstDayOfWeek: 1 // Start week on Monday
+            },
+            onOpen: function() {
+                deadlineInput.classList.add("ring-2", "ring-blue-400");
+            },
+            onClose: function() {
+                deadlineInput.classList.remove("ring-2", "ring-blue-400");
+            }
+        });
+
+        const authSection = document.getElementById("authSection");
+        const todoSection = document.getElementById("todoSection");
+        const taskList = document.getElementById("taskList");
+        const taskInput = document.getElementById("taskInput");
+
+        let taskRef = null;
+
+        // Sanitize input to prevent XSS
+        function sanitizeInput(input) {
+            const div = document.createElement("div");
+            div.textContent = input;
+            return div.innerHTML;
+        }
+
+        // Handle Firebase errors
+        function handleFirebaseError(error) {
+            switch (error.code) {
+                case "auth/invalid-credential":
+                    return "Email atau password salah!";
+                case "auth/invalid-email":
+                    return "Format email tidak valid!";
+                case "auth/email-already-in-use":
+                    return "Email sudah terdaftar!";
+                case "auth/weak-password":
+                    return "Password terlalu lemah, gunakan minimal 6 karakter!";
+                default:
+                    return "Terjadi kesalahan, coba lagi nanti.";
+            }
+        }
+
+        // Toggle password visibility
+        function togglePassword(inputId, span) {
+            const input = document.getElementById(inputId);
+            if (input.type === "password") {
+                input.type = "text";
+                span.textContent = "🙈";
+            } else {
+                input.type = "password";
+                span.textContent = "🙂";
+            }
+        }
+
+        // Check for saved login
+        window.onload = () => {
+            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(() => {
+                    // No need to manually check localStorage; Firebase handles session
+                })
+                .catch(e => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Gagal mengatur sesi",
+                        text: handleFirebaseError(e),
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                });
+        };
+
+        // Toggle between login and register forms
+        function toggleForm(form) {
+            document.getElementById("loginForm").classList.toggle("hidden", form !== "login");
+            document.getElementById("registerForm").classList.toggle("hidden", form !== "register");
+        }
+
+        // Track auth state
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                authSection.classList.add("hidden");
+                todoSection.classList.remove("hidden");
+                taskRef = db.collection("tasks").where("uid", "==", user.uid);
+                taskRef.orderBy("createdAt").onSnapshot(snapshot => {
+                    console.log("Snapshot received, docs count: ", snapshot.size);
+                    renderTasks(snapshot);
+                    checkDeadlineAlerts(snapshot);
+                }, error => {
+                    console.error("Snapshot error: ", error);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Gagal memuat tugas",
+                        text: "Tidak dapat memuat tugas, periksa koneksi Anda.",
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                });
+            } else {
+                authSection.classList.remove("hidden");
+                todoSection.classList.add("hidden");
+                taskList.innerHTML = '<li class="text-center text-gray-500 text-sm sm:text-base">Silakan login untuk melihat tugas.</li>';
+                taskRef = null;
+            }
+        });
+
+        // Register user
+        function register() {
+            const email = document.getElementById("registerEmail").value.trim();
+            const pass = document.getElementById("registerPassword").value.trim();
+            const confirmPass = document.getElementById("registerConfirmPassword").value.trim();
+
+            if (!email || !pass || !confirmPass) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Kolom tidak lengkap",
+                    text: "Email, password, dan konfirmasi password harus diisi!",
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
+            if (pass !== confirmPass) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Password tidak cocok",
+                    text: "Password dan konfirmasi password harus sama!",
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
+            auth.setPersistence(document.getElementById("rememberMe").checked ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION)
+                .then(() => {
+                    return auth.createUserWithEmailAndPassword(email, pass);
+                })
+                .then(() => {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Register berhasil",
+                        text: "Selamat, akun Anda telah dibuat!",
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                })
+                .catch(e => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Register gagal",
+                        text: handleFirebaseError(e),
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                });
+        }
+
+        // Login user
+        function login() {
+            const email = document.getElementById("loginEmail").value.trim();
+            const pass = document.getElementById("loginPassword").value.trim();
+
+            if (!email || !pass) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Kolom tidak lengkap",
+                    text: "Email dan password harus diisi!",
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
+            auth.setPersistence(document.getElementById("rememberMe").checked ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION)
+                .then(() => {
+                    return auth.signInWithEmailAndPassword(email, pass);
+                })
+                .then(() => {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Login berhasil",
+                        text: "Selamat datang kembali!",
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                })
+                .catch(e => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Login gagal",
+                        text: handleFirebaseError(e),
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                });
+        }
+
+        // Logout
+        function logout() {
+            auth.signOut().then(() => {
+                Swal.fire({
+                    icon: "success",
+                    title: "Logout berhasil",
+                    text: "Anda telah keluar.",
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            });
+        }
+
+        // Render tasks
+        function renderTasks(snapshot) {
+            taskList.innerHTML = "";
+            if (snapshot.empty) {
+                taskList.innerHTML = '<li class="text-center text-gray-500 text-sm sm:text-base">Belum ada tugas.</li>';
+                return;
+            }
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const li = document.createElement("li");
+                li.className = "bg-gray-50 p-4 rounded-lg flex justify-between items-center cursor-move shadow-sm hover:shadow-md transition duration-200";
+                li.setAttribute("data-id", doc.id);
+
+                const isCompleted = data.completed === true;
+                const deadline = data.deadline ? formatDeadline(data.deadline) : "";
+
+                li.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="${isCompleted ? 'line-through text-gray-400' : 'text-gray-800'} font-medium text-sm sm:text-base">${data.text}</span>
+                        ${deadline ? `<span class="ml-3 text-xs sm:text-sm ${getDeadlineColor(data.deadline)} px-2 py-1 rounded-full">${deadline}</span>` : ''}
+                    </div>
+                    <div class="space-x-3">
+                        <button onclick="toggleComplete('${doc.id}', ${isCompleted})" class="text-green-500 hover:text-green-700 text-sm sm:text-base">✔</button>
+                        <button onclick="deleteTask('${doc.id}')" class="text-red-500 hover:text-red-700 text-sm sm:text-base">🗑</button>
+                    </div>
+                `;
+                taskList.appendChild(li);
+            });
+        }
+
+        // Format deadline
+        function formatDeadline(deadline) {
+            const today = new Date();
+            const deadlineDate = new Date(deadline + "T23:59:59");
+            const diffDays = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) return "Hari ini";
+            if (diffDays === 1) return "Besok";
+            if (diffDays < 0) return "Lewat";
+            return `${diffDays} hari lagi`;
+        }
+
+        // Color for deadline
+        function getDeadlineColor(deadline) {
+            const today = new Date();
+            const deadlineDate = new Date(deadline + "T23:59:59");
+            const diffDays = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) return "bg-red-100 text-red-600";
+            if (diffDays <= 1) return "bg-yellow-100 text-yellow-600";
+            return "bg-green-100 text-green-600";
+        }
+
+        // Add task
+        function addTask() {
+            const text = sanitizeInput(taskInput.value.trim());
+            const deadline = deadlineInput.value;
+            const user = auth.currentUser;
+
+            if (!text) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Tugas kosong",
+                    text: "Tugas tidak boleh kosong!",
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            if (!user) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Belum login",
+                    text: "Silakan login terlebih dahulu!",
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
+            const taskData = {
+                uid: user.uid,
+                text,
+                deadline: deadline || null,
+                completed: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            db.collection("tasks").add(taskData)
+                .then(() => {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Tugas ditambahkan",
+                        text: "Tugas berhasil disimpan!",
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    taskInput.value = "";
+                    deadlineInput.value = "";
+                })
+                .catch(e => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Gagal menambah tugas",
+                        text: "Tidak dapat menyimpan tugas, coba lagi.",
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                });
+        }
+
+        // Toggle complete
+        function toggleComplete(id, current) {
+            db.collection("tasks").doc(id).update({
+                completed: !current
+            }).catch(e => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Gagal memperbarui tugas",
+                    text: "Tidak dapat memperbarui status tugas.",
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            });
+        }
+
+        // Delete task
+        function deleteTask(id) {
+            db.collection("tasks").doc(id).delete()
+                .then(() => {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Tugas dihapus",
+                        text: "Tugas berhasil dihapus!",
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                })
+                .catch(e => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Gagal menghapus tugas",
+                        text: "Tidak dapat menghapus tugas.",
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                });
+        }
+
+        // Sortable drag & drop
+        new Sortable(taskList, {
+            animation: 150,
+        });
+
+        // Deadline alerts with EmailJS
+        function checkDeadlineAlerts(snapshot) {
+            const now = new Date();
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                if (!data.deadline || data.completed) return;
+
+                const deadlineDate = new Date(data.deadline + "T23:59:59");
+                const timeDiff = deadlineDate - now;
+
+                if (timeDiff > 0 && timeDiff <= 86400000) {
+                    // Browser notification
+                    if (Notification.permission === "granted") {
+                        new Notification("⚠️ Deadline Mepet!", {
+                            body: `${data.text} - deadline besok!`
+                        });
+                    } else if (Notification.permission !== "denied") {
+                        Notification.requestPermission().then(permission => {
+                            if (permission === "granted") {
+                                new Notification("⚠️ Deadline Mepet!", {
+                                    body: `${data.text} - deadline besok!`
+                                });
+                            }
+                        });
+                    }
+
+                    // Email notification
+                    sendDeadlineEmail(data.text, data.deadline);
+                }
+            });
+        }
+
+        // Send deadline email
+        function sendDeadlineEmail(text, deadline) {
+            emailjs.send("service_jeb5c2f", "template_9tmqblq", { text, deadline })
+                .then(() => console.log("📧 Email terkirim!"))
+                .catch(err => console.error("❌ Gagal kirim email:", err));
+        }
+    </script>
+</body>
+
+</html>
